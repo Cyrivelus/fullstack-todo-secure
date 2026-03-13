@@ -3,31 +3,47 @@ import { useState, useEffect } from "react";
 function App() {
   const [tasks, setTasks] = useState([]);
   const [newTaskTitle, setNewTaskTitle] = useState("");
+
+  // L'URL de base pour tes tâches
   const API_URL = "http://localhost:3000/tasks";
   const API_KEY = "gemini-123-flash";
 
+  // 1. Charger les tâches (Read)
   const fetchTasks = async () => {
-    const res = await fetch(API_URL, { headers: { "x-api-key": API_KEY } });
-    const data = await res.json();
-    setTasks(data);
+    try {
+      const res = await fetch(API_URL, {
+        headers: { "x-api-key": API_KEY },
+      });
+      const data = await res.json();
+      setTasks(data);
+    } catch (error) {
+      console.error("Erreur de chargement:", error);
+    }
   };
 
   useEffect(() => {
     fetchTasks();
   }, []);
 
+  // 2. Ajouter une tâche (Create)
   const addTask = async (e) => {
     e.preventDefault();
     if (!newTaskTitle) return;
+
     await fetch(API_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json", "x-api-key": API_KEY },
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": API_KEY,
+      },
       body: JSON.stringify({ title: newTaskTitle }),
     });
+
     setNewTaskTitle("");
     fetchTasks();
   };
 
+  // 3. Modifier le statut (Update) - Utilise _id
   const toggleTask = async (id) => {
     await fetch(`${API_URL}/${id}`, {
       method: "PATCH",
@@ -36,7 +52,9 @@ function App() {
     fetchTasks();
   };
 
+  // 4. Supprimer la tâche (Delete) - Utilise _id
   const deleteTask = async (id) => {
+    // On envoie bien l'ID MongoDB (ex: 65ef...) dans l'URL
     await fetch(`${API_URL}/${id}`, {
       method: "DELETE",
       headers: { "x-api-key": API_KEY },
@@ -89,7 +107,7 @@ function App() {
       <ul style={{ listStyle: "none", padding: 0 }}>
         {tasks.map((t) => (
           <li
-            key={t.id}
+            key={t._id} // ID unique de MongoDB
             style={{
               display: "flex",
               alignItems: "center",
@@ -100,7 +118,7 @@ function App() {
             }}
           >
             <span
-              onClick={() => toggleTask(t.id)}
+              onClick={() => toggleTask(t._id)} // On passe _id au clic
               style={{
                 cursor: "pointer",
                 textDecoration: t.completed ? "line-through" : "none",
@@ -111,7 +129,7 @@ function App() {
               {t.completed ? "✅ " : "⭕ "} {t.title}
             </span>
             <button
-              onClick={() => deleteTask(t.id)}
+              onClick={() => deleteTask(t._id)} // On passe _id ici aussi !
               style={{
                 padding: "5px 10px",
                 background: "#ff4d4d",
@@ -127,6 +145,12 @@ function App() {
           </li>
         ))}
       </ul>
+
+      {tasks.length === 0 && (
+        <p style={{ textAlign: "center", color: "#999" }}>
+          Aucune tâche pour le moment !
+        </p>
+      )}
     </div>
   );
 }
